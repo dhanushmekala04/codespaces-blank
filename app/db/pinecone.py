@@ -1,15 +1,37 @@
-pinecone.py
+"""Pinecone vector database client with lazy initialization."""
 
-from pinecone import Pinecone
-from app.config.settings import settings
+from typing import TYPE_CHECKING
 
-pc = Pinecone(
-    api_key=settings.PINECONE_API_KEY
-)
+from config.settings import settings
 
-index = pc.Index(
-    settings.PINECONE_INDEX
-)
+if TYPE_CHECKING:
+    from pinecone import Index
+
+_index = None
+
 
 def get_pinecone_index():
-    return index
+    """
+    Return the Pinecone index, initializing it on first call.
+
+    Lazy init avoids crashing at import time when PINECONE_API_KEY
+    is empty (e.g. during local development without vector search).
+    """
+    global _index
+    if _index is None:
+        if not settings.pinecone_api_key:
+            raise RuntimeError(
+                "PINECONE_API_KEY is not set. "
+                "Configure it in .env to use vector search features."
+            )
+        from pinecone import Pinecone
+
+        pc = Pinecone(api_key=settings.pinecone_api_key)
+        _index = pc.Index(settings.pinecone_index)
+    return _index
+
+
+def close_pinecone() -> None:
+    """Reset the Pinecone index reference (for testing / teardown)."""
+    global _index
+    _index = None

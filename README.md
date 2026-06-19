@@ -18,6 +18,50 @@ The system is designed to improve patient experience, reduce administrative work
 
 ---
 
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- MongoDB (local or Atlas)
+- Redis (local or cloud)
+- OpenAI API Key (or compatible LLM)
+
+### Installation
+
+```bash
+# 1. Create virtual environment
+python -m venv env
+source env/bin/activate  # Windows: env\Scripts\activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure .env file (copy from .env and update API keys)
+OPENAI_API_KEY=your_key_here
+MONGO_URI=mongodb://localhost:27017
+REDIS_URL=redis://localhost:6379/0
+
+# 4. Start MongoDB and Redis (Docker)
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+docker run -d -p 6379:6379 --name redis redis:latest
+
+# 5. Run the application
+uvicorn app.main:app --reload --port 8000
+```
+
+### Test the API
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello", "patient_id": "PAT001"}'
+```
+
+API Documentation: http://localhost:8000/docs
+
+---
+
 # Core Design Principles
 
 * MongoDB is the operational source of truth.

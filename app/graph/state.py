@@ -1,4 +1,4 @@
-from typing import TypedDict, Optional, Literal
+from typing import TypedDict
 
 
 class PatientContext(TypedDict, total=False):
@@ -6,6 +6,7 @@ class PatientContext(TypedDict, total=False):
     tenant_id: str
     consent_valid: bool
     request_id: str
+    denial_reason: str | None  # populated when consent_valid is False
 
 
 class RequestState(TypedDict, total=False):
@@ -20,11 +21,13 @@ class TriageState(TypedDict, total=False):
     is_emergency: bool
     should_escalate: bool
     risk_flags: list[str]
+    priority: str | None  # "CRITICAL", "HIGH", or None
 
 
 class PlanningState(TypedDict, total=False):
     required_agents: list[str]
     plan_summary: str
+    execution_mode: str  # "sequential" or "parallel"
 
 
 class ExecutionState(TypedDict, total=False):

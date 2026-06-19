@@ -1,0 +1,78 @@
+version: "3.9"
+
+# ── Local development stack ───────────────────────────────────────────────────
+# Starts the API + MongoDB + Redis together.
+# External services (Pinecone, NVIDIA NIM, Langfuse) are reached over the internet
+# using keys from your .env file.
+#
+# Usage:
+#   docker compose up --build          # start everything
+#   docker compose up --build api      # start API only (uses existing mongo/redis)
+#   docker compose down -v             # stop and wipe volumes
+
+services:
+
+  # ── FastAPI application ──────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: patientcare-api:local
+    container_name: patientcare-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override .env values for local docker networking
+      MONGO_URI: mongodb://mongo:27017
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+      WORKERS: "1"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ── MongoDB (local dev only — use Atlas in staging/prod) ─────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: patientcare-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (local dev only — use Redis Cloud / ElastiCache in staging/prod) ───
+  redis:
+    image: redis:7.2-alpine
+    container_name: patientcare-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mongo_data:
+  redis_data:

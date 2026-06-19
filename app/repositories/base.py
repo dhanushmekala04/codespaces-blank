@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any, Generic, TypeVar
 
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -19,6 +20,9 @@ class BaseRepository(Generic[T]):
 
     async def create(self, document: T) -> T:
         collection = await self._collection()
+        now = datetime.now(timezone.utc)
+        document.created_at = now
+        document.updated_at = now
         doc = document.model_dump(by_alias=True, exclude_none=True)
         result = await collection.insert_one(doc)
         document.id = str(result.inserted_id)
@@ -32,7 +36,12 @@ class BaseRepository(Generic[T]):
         return self.model_cls.model_validate(doc)
 
     async def update(self, id: str, updates: dict[str, Any]) -> T | None:
+        """
+        Apply a partial update to a document.
+        Always stamps updated_at so callers don't have to remember.
+        """
         collection = await self._collection()
+        updates["updated_at"] = datetime.now(timezone.utc)
         await collection.update_one(
             {"_id": id, "is_deleted": False},
             {"$set": updates},
@@ -40,16 +49,19 @@ class BaseRepository(Generic[T]):
         return await self.get_by_id(id)
 
     async def delete(self, id: str) -> bool:
+        """Soft-delete by setting is_deleted=True and stamping deleted_at."""
         collection = await self._collection()
+        now = datetime.now(timezone.utc)
         result = await collection.update_one(
             {"_id": id, "is_deleted": False},
-            {"$set": {"is_deleted": True}},
+            {"$set": {"is_deleted": True, "deleted_at": now, "updated_at": now}},
         )
         return result.modified_count > 0
 
     async def list(self, filters: dict[str, Any] | None = None) -> list[T]:
-        filters = filters or {}
-        filters["is_deleted"] = False
+        # Always scope to non-deleted documents; copy so we don't mutate caller's dict
+        query = dict(filters) if filters else {}
+        query["is_deleted"] = False
         collection = await self._collection()
-        docs = await collection.find(filters).to_list(length=None)
+        docs = await collection.find(query).to_list(length=None)
         return [self.model_cls.model_validate(doc) for doc in docs]

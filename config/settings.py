@@ -5,21 +5,38 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # Application
     app_name: str = "PatientCare API"
     environment: Literal["development", "testing", "production"] = "development"
     debug: bool = True
 
+    # Database
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db: str = "patientcare"
     redis_url: str = "redis://localhost:6379/0"
 
-    openai_api_key: str = ""
-    anthropic_api_key: str = ""
+    # Vector Database
+    pinecone_api_key: str = ""
+    pinecone_index: str = "healthcare_knowledge"
+
+    # LLM — NVIDIA NIM (single key for all models)
+    nvidia_api_key: str = "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"
+
+    # Security
+    jwt_secret_key: str = "cb6863e2-fc34-4398-9cf6-54d98f169716"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
+    # Observability
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",       # ignore unknown env vars (e.g. LANGFUSE_BASE_URL)
     )
 
 
@@ -27,17 +44,5 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     return Settings()
 
-
-from pydantic_settings import BaseSettings
-
-class Settings(BaseSettings):
-
-    PINECONE_API_KEY: str
-    PINECONE_INDEX: str
-
-    MONGODB_URI: str
-    REDIS_URL: str
-
-settings = Settings()
 
 settings = get_settings()

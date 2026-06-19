@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import Field
 
@@ -10,7 +11,7 @@ class AuditLogDocument(BaseDocument):
     actor_id: str | None = None
     action: str
     outcome: str
-    metadata: dict = {}
+    metadata: dict[str, Any] = Field(default_factory=dict)
     latency_ms: int | None = None
 
 
