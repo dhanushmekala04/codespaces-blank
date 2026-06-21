@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     pinecone_index: str = "healthcare_knowledge"
 
     # LLM — NVIDIA NIM (single key for all models)
-    nvidia_api_key: str = "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"
+    nvidia_api_key: str =
 
     # Security
     jwt_secret_key: str = "cb6863e2-fc34-4398-9cf6-54d98f169716"
